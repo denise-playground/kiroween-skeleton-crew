@@ -33,12 +33,12 @@ Deadline: **4 December 2026**. Target submission date: **Wednesday 2 December**,
   - [x] 1.6 Install TypeScript, Vitest, fast-check, and tsx with exact versions (`pnpm add --save-exact -D`). Add root scripts `typecheck`, `test`, `build`. Add one placeholder test to prove `pnpm test` runs
     - _Requirements: 1.3, 10.x_
 
-- [ ] 2. Early Kiro setup so it helps while building
-  - [ ] 2.1 Write `.kiro/steering/project-structure.md` (stack, folder layout, naming, the "skeleton stays generic" rule)
+- [x] 2. Early Kiro setup so it helps while building
+  - [x] 2.1 Write `.kiro/steering/project-structure.md` (stack, folder layout, naming, the "skeleton stays generic" rule)
     - _Requirements: 9.1_
-  - [ ] 2.2 Create the **test-on-save** hook with `createHook` (PostFileSave on `.ts` files, runs the tests)
+  - [x] 2.2 Create the **test-on-save** hook with `createHook` (PostFileSave on `.ts` files, runs the tests)
     - _Requirements: 8.1_
-  - [ ] 2.3 Create the **usage-log-on-task** hook (PostTaskExec, appends a short entry to `KIRO_USAGE.md`)
+  - [x] 2.3 Create the **usage-log-on-task** hook (PostTaskExec, appends a short entry to `KIRO_USAGE.md`)
     - _Requirements: 8.3_
 
 ### Phase 2: Spikes (week 1, each time-boxed to half a day)
@@ -57,69 +57,70 @@ Each spike ends with a written decision in `design.md` and a line in `KIRO_USAGE
   - Decision: acceptable as is, resize inputs first, or document `@tensorflow/tfjs-node` as an optional speed-up
   - _Requirements: 2.1, 2.5_
 
-- [ ] 5. Spike C: food recognition quality
+- [x] 5. Spike C: food recognition quality
   - Take or collect about 15 photos of your own: fruit, vegetables, a mixed fridge shelf, packaged food
   - Run the MobileNet-style classifier in Node and the browser. Record which target ingredients (tomato, onion, potato, egg, cheese, etc.) are recognized and which are not
   - Decision gate: if recognition is poor, the editable chips and a "quick add" list become the primary input and detection is the helper. Update `design.md` either way
   - _Requirements: 6.6, 6.7_
 
-- [ ]* 6. Spike D: nutrition data licensing
+- [x]* 6. Spike D: nutrition data licensing
   - Confirm the USDA FoodData Central license and the FDA Daily Values used in the Curse Level formula. Write the credit line for the README
   - _Requirements: 14.3_
 
-- [ ] 7. Collect sample images
+- [x] 7. Collect sample images
   - 12 to 20 photos taken by you (food, a desk, pets or toys, a street scene). No stock photos with unclear licenses, no logos or brands
   - Store in `samples/` with a short `samples/README.md` stating they are your own work
+  - Done with a reduced set: 4 original photos (all food or kitchen) plus rotated copies, 15 files in total, with brands and logos pixelated. Replace or add real photos of a desk, pets or toys, and a street scene when available
   - _Requirements: 4.4, 12.6_
 
-- [ ] 8. Checkpoint: spikes complete. Update `design.md`, `KIRO_USAGE.md`
+- [x] 8. Checkpoint: spikes complete. Update `design.md`, `KIRO_USAGE.md`
 
 ### Phase 3: Skeleton package (weeks 1 to 2)
 
-- [ ] 9. Detection core (browser-safe)
-  - [ ] 9.1 Define `Detection`, `DetectOptions`, `Detector`, `ModelAdapter`, and typed errors (`UnsupportedImageError`)
+- [x] 9. Detection core (browser-safe)
+  - [x] 9.1 Define `Detection`, `DetectOptions`, `Detector`, `ModelAdapter`, and typed errors (`UnsupportedImageError`)
     - _Requirements: 2.2, 2.4_
-  - [ ] 9.2 Implement `filterByConfidence` and `countByLabel`
+  - [x] 9.2 Implement `filterByConfidence` and `countByLabel`
     - _Requirements: 2.3, 3.2_
-  - [ ] 9.3 Property test: the sum of `countByLabel` counts equals the number of detections
+  - [x] 9.3 Property test: the sum of `countByLabel` counts equals the number of detections
     - _Requirements: 10.1_
-  - [ ] 9.4 Property test: every detection kept by `filterByConfidence` has confidence at or above the threshold
+  - [x] 9.4 Property test: every detection kept by `filterByConfidence` has confidence at or above the threshold
     - _Requirements: 10.2_
-  - [ ] 9.5 Implement the `Detector` class around a `ModelAdapter` (loads the model once and reuses it), tested with a fake adapter so tests run offline
+  - [x] 9.5 Implement the `Detector` class around a `ModelAdapter` (loads the model once and reuses it), tested with a fake adapter so tests run offline
     - _Requirements: 2.5, 2.6_
 
-- [ ] 10. Model adapters
-  - [ ] 10.1 `CocoSsdAdapter` (works in Node and the browser)
+- [x] 10. Model adapters
+  - [x] 10.1 `CocoSsdAdapter` (works in Node and the browser)
     - _Requirements: 2.1, 2.6_
-  - [ ] 10.2 `MobileNetFoodAdapter` with an allowlist of food labels passed in by the app, shaped by the results of Spike C
+  - [x] 10.2 `MobileNetFoodAdapter` with an allowlist of food labels passed in by the app, shaped by the results of Spike C
     - _Requirements: 2.2, 6.6_
-  - [ ] 10.3 Optional integration test that loads the real models, skipped unless `RUN_MODEL_TESTS=1`
+  - [x] 10.3 Optional integration test that loads the real models, skipped unless `RUN_MODEL_TESTS=1`
     - _Requirements: 2.1_
 
-- [ ] 11. Node image loading
+- [x] 11. Node image loading
   - Load an image from a file path or base64 into pixels, support JPEG and PNG, reject other formats with `UnsupportedImageError`
   - Only read files inside an allowed root, and cap base64 size
   - _Requirements: 2.1, 2.4_
 
-- [ ] 12. MCP server kit (Node-only)
-  - [ ] 12.1 Tool registry that rejects a duplicate name at registration
+- [x] 12. MCP server kit (Node-only)
+  - [x] 12.1 Tool registry that rejects a duplicate name at registration
     - _Requirements: 3.6_
-  - [ ] 12.2 Tool wrapper: Zod validation before the handler, and a thrown error becomes an error result while the server keeps running
+  - [x] 12.2 Tool wrapper: Zod validation before the handler, and a thrown error becomes an error result while the server keeps running
     - _Requirements: 3.4, 3.5_
-  - [ ] 12.3 Built-in `detect_objects` and `count_objects` tools, plus a `serveStdio` helper that logs only to stderr
+  - [x] 12.3 Built-in `detect_objects` and `count_objects` tools, plus a `serveStdio` helper that logs only to stderr
     - _Requirements: 3.1, 3.2, 3.3, 3.7_
-  - [ ] 12.4 Property test: registering any tool name twice always fails
+  - [x] 12.4 Property test: registering any tool name twice always fails
     - _Requirements: 10.3_
-  - [ ] 12.5 Property test: any input that fails the schema returns a validation error and never calls the handler
+  - [x] 12.5 Property test: any input that fails the schema returns a validation error and never calls the handler
     - _Requirements: 10.4_
 
-- [ ] 13. Package entry points and the app template
-  - [ ] 13.1 Browser-safe entry point and Node-only entry point in `package.json` `exports`. Add a build check that the browser entry pulls in no Node modules
+- [x] 13. Package entry points and the app template
+  - [x] 13.1 Browser-safe entry point and Node-only entry point in `package.json` `exports`. Add a build check that the browser entry pulls in no Node modules
     - _Requirements: 1.2_
-  - [ ] 13.2 App_Agent template and `packages/skeleton/README.md` explaining how to create a new app
+  - [x] 13.2 App_Agent template and `packages/skeleton/README.md` explaining how to create a new app
     - _Requirements: 1.4, 4.5_
 
-- [ ] 14. Checkpoint: run the built-in tools through the MCP Inspector on a sample image, then update `KIRO_USAGE.md`
+- [x] 14. Checkpoint: run the built-in tools through the MCP Inspector on a sample image, then update `KIRO_USAGE.md`
 
 ### Phase 4: Graveyard Shift CLI (week 2)
 

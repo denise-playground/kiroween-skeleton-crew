@@ -12,6 +12,8 @@
   "scripts": {
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "test:models": "RUN_MODEL_TESTS=1 vitest run",
     "build": "pnpm -r --if-present build"
   },
   "pnpm": {
@@ -23,6 +25,7 @@
     "@tensorflow-models/coco-ssd": "2.2.3",
     "@tensorflow/tfjs": "4.22.0",
     "@types/node": "22.20.5",
+    "esbuild": "0.28.2",
     "fast-check": "4.10.2",
     "jpeg-js": "0.4.4",
     "pngjs": "7.0.0",

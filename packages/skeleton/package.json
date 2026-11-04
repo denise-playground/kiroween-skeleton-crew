@@ -6,13 +6,23 @@
   "type": "module",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./node": "./src/node/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.4.0",
+    "@tensorflow-models/coco-ssd": "2.2.3",
+    "@tensorflow-models/mobilenet": "2.1.1",
+    "@tensorflow/tfjs": "4.22.0",
+    "jpeg-js": "0.4.4",
+    "pngjs": "7.0.0",
     "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
+    "@types/pngjs": "6.0.5"
   }
 }

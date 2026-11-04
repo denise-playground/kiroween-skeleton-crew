@@ -207,7 +207,7 @@ Matching works on ingredient names only, so the core flow does not depend on the
 
 Data files, both in `apps/witches-pantry/src/data/`:
 - `recipes.json`: recipes with grams per ingredient and a serving count.
-- `nutrition.json`: per-100 g values for about 60 to 80 ingredients (`kcal`, `protein`, `carbs`, `fat`, `satFat`, `fibre`, `sodiumMg`, `addedSugar`) plus a `source` field per entry. Values are taken once from USDA FoodData Central, which I expect to be public domain but which must be confirmed before use. The added sugar column is set by hand: 0 for whole foods, and the true value for sugar, honey, and syrups. The app makes no network calls for nutrition.
+- `nutrition.json`: per-100 g values for about 60 to 80 ingredients (`kcal`, `protein`, `carbs`, `fat`, `satFat`, `fibre`, `sodiumMg`, `addedSugar`) plus a `source` field per entry. Values are taken once from USDA FoodData Central, which is public domain under CC0 1.0 (confirmed in Spike D, see below). The added sugar column is set by hand: 0 for whole foods, and the true value for sugar, honey, and syrups. The app makes no network calls for nutrition.
 
 Pure functions, shared by the UI and the MCP tool (same pattern as `suggestRecipes`):
 
@@ -222,7 +222,7 @@ function dominantCurse(n: Nutrition): 'sodium' | 'saturatedFat' | 'addedSugar' |
 
 Curse Level formula, with weights that are a first draft and will be tuned against the real recipes during implementation:
 - Each ratio is the per-serving amount divided by one third of the daily value, clamped to 0 to 1. A third is a rough per-meal share.
-- Reference daily values: sodium 2300 mg, saturated fat 20 g, added sugar 50 g, fibre 28 g, protein 50 g. These are my recollection of the FDA Daily Values table and must be checked against the source when implemented.
+- Reference daily values: sodium 2300 mg, saturated fat 20 g, added sugar 50 g, fibre 28 g, protein 50 g. These match the FDA Daily Values table for adults and children aged 4 and over (confirmed in Spike D, see below).
 - `penalty = 100 * (0.35 * sodiumRatio + 0.35 * satFatRatio + 0.30 * addedSugarRatio)`
 - `antidote = 0.5 * fibreRatio + 0.5 * proteinRatio`
 - `curseLevel = round(penalty * (1 - 0.25 * antidote))`, which is always within 0 to 100, never decreases when sodium, saturated fat, or added sugar rise, and never increases when fibre or protein rise.
@@ -311,3 +311,51 @@ Tested in the Kiro IDE with a throwaway `hello` server and a throwaway agent. Fi
 - **Not verified:** which Node version Kiro uses to launch servers (the server started, but the version was not recorded), and whether the kiro-cli issue about workspace agents not receiving MCP tools (kirodotdev/Kiro #5873, kiro-cli 1.26.2) applies to the CLI. The IDE path works.
 
 Decision: use `.kiro/settings/mcp.json` for the dev-time registration of each app server and one inline-`mcpServers` agent per app in `.kiro/agents/`, using the formats above. Tasks 17 and 21.2 can proceed on this basis.
+
+## Spike C result: food recognition quality (decided)
+
+Ran the ImageNet MobileNet v2 classifier (`@tensorflow-models/mobilenet` 2.1.1, `@tensorflow/tfjs` 4.22.0, pure-JS CPU backend, Node 22.23.0) on 15 food images with whole-image top-5 classification. Model load took about 3.4 s and inference about 0.7 s per image. Inference is far faster than COCO-SSD in Spike B.
+
+The test images were stock photos used only for this local test. They are not in the repo. The result is therefore an optimistic best case: the photos are well lit, neatly composed, and mostly multi-ingredient flat lays. It is not a test on messy real fridge photos, which is still outstanding until the author's own photos exist (task 7).
+
+- **Top-1 results across 15 images:** 1 clear hit (a close-up of mushrooms, 0.79 confidence), 7 predicted `cucumber` as a generic green-vegetable guess, 5 predicted a non-food object (plate, tray, pot, wheelbarrow, cleaver), 1 `fig`, 1 `banana`.
+- **Multi-ingredient scenes defeat whole-image classification.** Each image returns one distribution, so a counter with 10 ingredients yields one dominant guess and little else.
+- **The ImageNet label set lacks the target ingredients.** Checked against the model's class list: no tomato, onion, carrot, garlic, avocado, or lettuce. The only potato, egg and cheese entries are `sweet potato` (an ocarina), `eggnog`, `cheeseburger` and `mashed potato`. Foods that exist include broccoli, cauliflower, cucumber, zucchini, bell pepper, mushroom, banana, lemon, orange, strawberry, and head cabbage.
+- **Environment note:** downloading the model from Node failed with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY` on this machine (likely a custom CA or proxy). Running with `node --use-system-ca` fixed it without disabling certificate checks. The README should mention this flag for users who hit the same error.
+
+Decision (gate triggered): recognition is poor for the Witch's Pantry's purpose, so **the editable ingredient chips and a quick-add list are the primary input, and detection is a helper that pre-fills suggestions**. Consequences for the build:
+
+- `MobileNetFoodAdapter` (task 10.2) must be treated as a best-effort helper. Its allowlist keeps only ingredient-like labels, such as broccoli, cauliflower, cucumber, zucchini, bell pepper, mushroom, banana, lemon, orange, strawberry, and head cabbage, and drops non-food labels such as plate and tray. Low-confidence guesses should be suggested, not auto-added.
+- The UI copy must say "possible ingredients, please check" and never claim certainty.
+- The recipe dataset and quick-add list (tasks 19.1 and 20.4) are the main route to a working demo, and tomato, onion, potato, egg and cheese must be reachable there.
+
+Not tried, and worth a short follow-up only if time allows: classifying image tiles (for example a 3x3 grid) so each tile has one dominant item, and a food-specific model. Neither was measured here.
+
+## Spike D result: nutrition data licensing (decided)
+
+- **USDA FoodData Central license:** the FoodData Central home page states that its data are in the public domain, are not copyrighted, and are published under CC0 1.0 Universal. No permission is needed. USDA asks users to credit FoodData Central as the source. The nutrition table may therefore be built from it and committed to the repo. The bulk CSV downloads need no API key. The API does need a free data.gov key, so the table should be built once from a download and committed, as the design already says.
+- **Credit line for the README:** "Nutrition values are derived from U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. https://fdc.nal.usda.gov/ (public domain, CC0 1.0)."
+- **FDA Daily Values:** read from the FDA's "DRVs - Food Components" table (FDA FAQ for industry, https://www.fda.gov/media/99059/download), column "Adults and Children 4 years and older", based on 2,000 calories: total fat 78 g, saturated fat 20 g, cholesterol 300 mg, total carbohydrates 275 g, sodium 2,300 mg, dietary fibre 28 g, protein 50 g, added sugars 50 g. The values used by the Curse Level formula (sodium 2300 mg, saturated fat 20 g, added sugar 50 g, fibre 28 g, protein 50 g) all match. The text extracted from the PDF has table footnote markers stuck to the numbers (for example "178" for 78 g), so the readings above were matched against the known label values.
+- **Wording:** keep the in-app note that the Curse Level is a playful guide based on standard daily values and is not medical or dietary advice. The FDA states that the daily values are based on a 2,000-calorie diet and that individual needs differ.
+- **Not verified:** the Curse Level weights (0.35 / 0.35 / 0.30 and the antidote factor) are a design choice and have no external source. The README should describe them as playful, not scientific.
+
+Decision: nutrition work (Phase 6, stretch) is not blocked on licensing.
+
+## Phase 3 implementation notes (skeleton package)
+
+Decisions made while building the skeleton that differ from, or add to, the sketches above:
+
+- **Entry points.** The package has two entry points in `exports`: `@skeleton-crew/core` (browser-safe: detector, adapters, types) and `@skeleton-crew/core/node` (file loading and the MCP kit). The folder layout is `src/detector/` and `src/node/` and `src/node/mcp/`, not the `detector-browser/` and `mcp/` folders drawn in the layout at the top. A test (`entry-points.test.ts`) bundles the browser entry for the browser with esbuild and fails if it reaches a Node module. A second test checks that the same bundling of the Node entry does fail, so the check can actually catch a mistake.
+- **`ModelAdapter` shape.** `load()` and `infer(image)`, plus `name` and `defaultMinConfidence`. Adapters return raw detections and the `Detector` applies the confidence threshold, so the filter lives in one place. The `Detector` caches the load promise, so overlapping calls load the model once, and it forgets a failed load so the next call retries.
+- **Image decoding is injected.** Adapters take an `ImageDecoder` function instead of deciding how to read pixels. Node uses `createNodeImageDecoder`. The web app will supply a canvas-based decoder.
+- **Image loading safety.** The Node decoder judges the format from the file's first bytes, not its name, and also requires a `.jpg`, `.jpeg` or `.png` extension. Paths are resolved with `realpath` and must stay inside the allowed folder, which also stops symlink escapes. Caps: 25 MB per file, about 25 MB of base64, 50 megapixels (PNG size is read from the header before decoding).
+- **Tool names are snake_case, enforced.** `registerTool` rejects any other name. Reason: the SDK keeps tools in a plain object, so a property-based test found that a tool named `valueOf` or `toString` is reported as "already registered" on its first use. `constructor` is reserved for the same reason.
+- **Validation is left to the SDK.** The SDK checks input against the Zod schema before the handler runs and returns an error result. The kit does not parse a second time, because a second parse would apply `.transform()` twice. Schemas must therefore stay plain. The kit only wraps the handler so a thrown error becomes an error result.
+- **`z` is re-exported** from `@skeleton-crew/core/node`, so apps build schemas with the same Zod version as the kit and do not need their own `zod` dependency. Found when the README snippet failed to compile in an app.
+- **stdio.** `serveStdio` returns a handle (not a promise) and the process stays alive while it reads stdin. `serveOverStdio` redirects `console.log`, `info` and `debug` to stderr first. TensorFlow.js prints its "install tfjs-node" banner to stderr already, so it does not break the protocol. An end-to-end test starts a real server process that calls `console.log` on purpose and checks that stdout holds only JSON-RPC messages.
+- **App_Agent template** is `packages/skeleton/agent-template/app-agent.template.json`, in the JSON format confirmed in Spike A (not markdown as drawn in the layout). It is outside `src/` because it is not code. A test fills the placeholders and checks the result has no legacy fields and exposes only the app's own tools.
+- **Dependencies added to the skeleton** (exact versions): `@modelcontextprotocol/server` 2.4.0, `zod` 4.6.7, `@tensorflow/tfjs` 4.22.0, `@tensorflow-models/coco-ssd` 2.2.3, `@tensorflow-models/mobilenet` 2.1.1, `jpeg-js` 0.4.4, `pngjs` 7.0.0, and as dev dependencies `@modelcontextprotocol/client` 2.4.0 and `@types/pngjs`. `esbuild` 0.28.2 is a root dev dependency for the entry-point check.
+
+### Checkpoint 14 result
+
+A real server (real COCO-SSD model) was driven over stdio on the sample photos. `tools/list` returned `detect_objects` and `count_objects`. `detect_objects` on `potatoes-in-pan.jpg` returned a box, but labelled it `cake` at 0.93 confidence, which is wrong (COCO-SSD has no potato class). `count_objects` on the salad drawer photo returned `{"banana": 1}` (two bananas are visible), so the sorter will be right about food only some of the time. Bad requests (a `.json` path, an absolute path, a missing file, `minConfidence` of 5) each returned a readable error result, and the server kept answering. The browser-based MCP Inspector UI was not used, because the raw stdio session tests the same protocol path.

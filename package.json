@@ -1,0 +1,29 @@
+{
+  "name": "skeleton-crew",
+  "version": "0.1.0",
+  "description": "Kiroween Skeleton Crew: a reusable object detection skeleton with an MCP server kit, and two apps built on it.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@10.34.9",
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "vitest run",
+    "build": "pnpm -r --if-present build"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "fast-check": "4.10.2",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "graveyard-shift",
+  "version": "0.1.0",
+  "description": "Graveyard Shift Inventory: a CLI that scans a folder of photos and sorts them by what is in them.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@skeleton-crew/core": "workspace:*"
+  }
+}

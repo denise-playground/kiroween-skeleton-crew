@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Test on save",
+      "trigger": "PostFileSave",
+      "description": "Run the test suite whenever a TypeScript file is saved.",
+      "matcher": "\\.ts$",
+      "action": {
+        "type": "command",
+        "command": "pnpm test",
+        "timeout": 120
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "witches-pantry",
+  "version": "0.1.0",
+  "description": "The Witch's Pantry: a web app that spots food in a photo and suggests recipes as potions.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@skeleton-crew/core": "workspace:*"
+  }
+}

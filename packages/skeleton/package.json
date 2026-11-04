@@ -1,0 +1,14 @@
+{
+  "name": "@skeleton-crew/core",
+  "version": "0.1.0",
+  "description": "Reusable skeleton: detection core and MCP server kit shared by every Skeleton Crew app.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  }
+}

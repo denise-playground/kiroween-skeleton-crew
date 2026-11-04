@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    // CLI and MCP server both run in Node.
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

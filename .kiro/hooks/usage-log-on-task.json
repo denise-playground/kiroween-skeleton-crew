@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Usage log on task",
+      "trigger": "PostTaskExec",
+      "description": "After each spec task, ask the agent to append a short entry to KIRO_USAGE.md.",
+      "action": {
+        "type": "agent",
+        "prompt": "A spec task just completed. Append a short, concrete entry (2 to 3 sentences) to KIRO_USAGE.md under the most fitting heading: the task number, what Kiro did, anything that went wrong, and what changed because of it. Do not commit."
+      }
+    }
+  ]
+}

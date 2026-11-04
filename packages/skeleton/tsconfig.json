@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    // The skeleton has a Node-only entry point (MCP server kit, file loading).
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

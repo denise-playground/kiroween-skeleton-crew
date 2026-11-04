@@ -8,7 +8,7 @@ Running log for the Kiroween (Skeleton Crew) write-up. Add short, concrete notes
 
 ## Custom agents
 
-- 
+- Spike A (task 3): built a throwaway `spike-hello` agent to learn the real file format. Kiro's current docs showed that the `allowedTools` field I first wrote is CLI 2.x legacy and IDE 1.0 uses `permissions.rules`, so the file was rewritten before testing. With the agent active, a "list the project files" request was refused while `hello` still worked.
 
 ## Agent hooks
 
@@ -42,7 +42,7 @@ Running log for the Kiroween (Skeleton Crew) write-up. Add short, concrete notes
 
 ## MCP
 
-- 
+- Spike A (task 3): a one-tool MCP server was registered in `.kiro/settings/mcp.json` and called from Kiro. Findings: the server only showed up after a window reload, Kiro runs servers from the workspace root so relative `args` work, and `node --import tsx` runs TypeScript with no build step. A raw stdio check confirmed stdout carries only protocol messages and bad input returns an error result without stopping the server. Details are in `design.md`.
 
 ## Property-based testing
 

@@ -281,3 +281,17 @@ MCP: `suggest_recipes` returns each recipe's nutrition, `curseLevel`, and `purit
 1. Confirm the pure-JS CPU `@tensorflow/tfjs` backend's COCO-SSD inference speed is acceptable for a CLI scanning dozens of images; fall back to documenting `tfjs-node` as opt-in if too slow.
 2. Confirm a food-oriented browser classifier (MobileNet fine-tune or similar) gives usable ingredient labels on real fridge/food photos; if label quality is too noisy, lean more heavily on the editable ingredient chips (Requirement 6.7) as the primary input path rather than a nicety.
 3. Verify the exact current Kiro `mcp.json` and custom-agent file schema against the installed Kiro version before building `.kiro/settings/mcp.json` and the agent files, since these formats have changed across recent Kiro releases.
+
+## Spike A result: Kiro configuration formats (decided)
+
+Tested in the Kiro IDE with a throwaway `hello` server and a throwaway agent. Findings:
+
+- **Workspace MCP config:** `.kiro/settings/mcp.json` with `mcpServers.<name>.{command, args, env, disabled}` works. Kiro listed the server and called its tool. On first creation of the `.kiro/settings/` folder the server only appeared after a window reload.
+- **Relative paths:** Kiro starts workspace servers with the workspace root as the working directory (the tool reported `cwd` as the repo root). Root-relative `args` such as `packages/skeleton/spike/hello-server.ts` work, so no absolute paths are needed in committed config.
+- **Running TypeScript:** `node --import tsx <file>.ts` worked with no build step. Real entries use the same form until a build output exists.
+- **stdout rule:** with `serveStdio` from `@modelcontextprotocol/server/stdio`, stdout carried only JSON-RPC and the startup banner went to stderr. Invalid input returned `isError: true` with a Zod message and the server kept running (supports Requirements 3.4, 3.5, 3.7).
+- **Custom agent format:** `.kiro/agents/<name>.json` with `name`, `description`, `prompt`, `mcpServers`, `tools`, `permissions.rules`, `includeMcpJson`, and `welcomeMessage`. Select one MCP tool with `"tools": ["@server/tool"]`, and pre-approve it with `{ "capability": "mcp", "match": ["server/tool"], "effect": "allow" }`. `allowedTools` and `toolsSettings` are CLI 2.x legacy and are not read by IDE 1.0, so agent files must not use them.
+- **Tool restriction:** with the agent active, a request to list project files was refused, and `hello` still worked. Set `includeMcpJson: false` so the agent sees only its own server.
+- **Not verified:** which Node version Kiro uses to launch servers (the server started, but the version was not recorded), and whether the kiro-cli issue about workspace agents not receiving MCP tools (kirodotdev/Kiro #5873, kiro-cli 1.26.2) applies to the CLI. The IDE path works.
+
+Decision: use `.kiro/settings/mcp.json` for the dev-time registration of each app server and one inline-`mcpServers` agent per app in `.kiro/agents/`, using the formats above. Tasks 17 and 21.2 can proceed on this basis.

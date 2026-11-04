@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "spike-hello": {
+      "command": "node",
+      "args": ["--import", "tsx", "packages/skeleton/spike/hello-server.ts"],
+      "env": {},
+      "disabled": false
+    }
+  }
+}

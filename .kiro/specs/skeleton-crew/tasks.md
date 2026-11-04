@@ -45,7 +45,7 @@ Deadline: **4 December 2026**. Target submission date: **Wednesday 2 December**,
 
 Each spike ends with a written decision in `design.md` and a line in `KIRO_USAGE.md`. If a spike fails, the design is updated before any build task that depends on it.
 
-- [ ] 3. Spike A: Kiro configuration formats (blocks tasks 17, 21.2, and 28)
+- [x] 3. Spike A: Kiro configuration formats (blocks tasks 17, 21.2, and 28)
   - Build a throwaway MCP server with one `hello` tool using `@modelcontextprotocol/server` v2, run it with `pnpm dlx @modelcontextprotocol/inspector`, then register it in `.kiro/settings/mcp.json` and confirm Kiro lists and can call the tool
   - Find out whether Kiro resolves a relative path in `args` from the workspace root, and what to do if not
   - Read the current Kiro custom agent documentation, create one tiny custom agent, and confirm it can use only the allowed MCP tools. Record the exact file format and location

@@ -276,6 +276,22 @@ MCP: `suggest_recipes` returns each recipe's nutrition, `curseLevel`, and `purit
 - **Graveyard Shift Inventory**: published as a local CLI; README documents `pnpm install` then `pnpm --filter graveyard-shift start scan <folder>` from the repo root (with an optional `pnpm link --global` to get a bare `graveyard-shift scan <folder>` command). No hosting needed (Requirement 13.3).
 - **The Witch's Pantry**: `pnpm --filter witches-pantry build` (Vite) produces static files in `dist/`, deployed via GitHub Pages (a `gh-pages` branch or GitHub Actions workflow), giving judges a working URL per Requirement 6.4 / 13.2.
 
+## Spike B result: detection speed in Node (decided)
+
+Ran COCO-SSD on the pure-JS CPU backend (`@tensorflow/tfjs` 4.22.0) via `jpeg-js` and `pngjs` in Node 22.23.0. Ten synthetic PNG images at sizes from 320×240 to 1920×1080.
+
+**Key findings (measured on 4 real food photos, 408–612 px, Node 22.23.0):**
+
+- Model cold-load time: ~5.6 s (one-time; the adapter caches it).
+- Per-image inference: **4.8–6.4 s**, average **5.2 s**. The outlier (6.4 s) was the first post-load call; subsequent images converged to ~4.8 s. Inference time is almost flat across image sizes — the bottleneck is pure-JS computation, not pixel upload.
+- Memory: ~54 MB heap, ~234 MB RSS after 4 images.
+- Detection quality on real food photos was usable: `bowl`, `broccoli`, `carrot`, `orange`, `banana`, `dining table` were all detected. COCO-SSD's 80 classes include enough food-adjacent labels for the photo sorter use case.
+- `tf.browser.fromPixels` in Node requires `{ data: Buffer | Uint8Array, width, height }`. The `data` value must satisfy `instanceof Uint8Array`. Do **not** re-wrap via `new Uint8Array(buf.buffer, offset, len)` — that creates a view whose prototype chain breaks the check. Both `jpeg-js` (with `useTArray: false`, default) and `PNG.sync.read` from `pngjs` return a `Buffer`, which satisfies `instanceof Uint8Array` directly.
+
+**Decision:** ~5 s per image is slow for interactive use but acceptable for a batch CLI (user kicks it off and waits). Document `@tensorflow/tfjs-node` as an **optional speed-up** rather than a requirement so `pnpm install` never needs build tools. The CLI will print a one-time hint suggesting `tfjs-node`. Resizing inputs is skipped — timings are flat across sizes so it would not help.
+
+Implementation note for Task 11 (Node image loading): use `jpeg-js` with default options and `PNG.sync.read` from `pngjs`. Both return a `Buffer` that TF.js accepts directly.
+
 ## Open implementation risks to validate early (spike before full build-out)
 
 1. Confirm the pure-JS CPU `@tensorflow/tfjs` backend's COCO-SSD inference speed is acceptable for a CLI scanning dozens of images; fall back to documenting `tfjs-node` as opt-in if too slow.

@@ -44,6 +44,8 @@ Running log for the Kiroween (Skeleton Crew) write-up. Add short, concrete notes
 
 - Spike A (task 3): a one-tool MCP server was registered in `.kiro/settings/mcp.json` and called from Kiro. Findings: the server only showed up after a window reload, Kiro runs servers from the workspace root so relative `args` work, and `node --import tsx` runs TypeScript with no build step. A raw stdio check confirmed stdout carries only protocol messages and bad input returns an error result without stopping the server. Details are in `design.md`.
 
+- Spike B (task 4): ran COCO-SSD on the pure-JS CPU backend (`@tensorflow/tfjs` 4.22.0) with `jpeg-js` and `pngjs` decoders in Node 22.23.0. Measured ~5.6 s cold model load (one-time) and **4.8–6.4 s per-image inference** on 4 real food photos (avg 5.2 s). Inference is flat across image sizes — the bottleneck is JS execution, not pixel upload. Detection quality on real photos was usable: bowl, broccoli, carrot, orange, banana all detected. Discovered that `tf.browser.fromPixels` in Node needs `{ data: Buffer, width, height }` where `data instanceof Uint8Array` — passing a re-wrapped `Uint8Array` view breaks the internal check. Decision: document `@tensorflow/tfjs-node` as an optional speed-up, not a requirement. Details in `design.md`.
+
 ## Property-based testing
 
 - 

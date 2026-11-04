@@ -52,7 +52,7 @@ Each spike ends with a written decision in `design.md` and a line in `KIRO_USAGE
   - Confirm no `console.log` reaches stdout
   - _Requirements: 3.7, 4.1, 4.3_
 
-- [ ] 4. Spike B: detection speed in Node
+- [x] 4. Spike B: detection speed in Node
   - Run COCO-SSD on the pure-JS CPU backend with JPEG and PNG decoding through `jpeg-js` and `pngjs`. Measure model load time, time per image, and memory on 10 sample images
   - Decision: acceptable as is, resize inputs first, or document `@tensorflow/tfjs-node` as an optional speed-up
   - _Requirements: 2.1, 2.5_

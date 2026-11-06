@@ -103,10 +103,10 @@ describe('built-in tools', () => {
   it('lets an app add its own tool next to the built-ins (Requirement 3.3)', async () => {
     const { detector } = fakeDetector([]);
     const server = createSkeletonServer({ name: 'app', version: '1.0.0', detector });
-    registerTool(server, { name: 'sort_photos', description: 'd', inputSchema: z.object({}), handler: async () => textResult('x') });
+    registerTool(server, { name: 'my_tool', description: 'd', inputSchema: z.object({}), handler: async () => textResult('x') });
     const client = await connectClient(server);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toContain('sort_photos');
+    expect(tools.map((t) => t.name)).toContain('my_tool');
     expect(tools).toHaveLength(3);
   });
 

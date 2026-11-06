@@ -53,9 +53,9 @@ describe('registerTool: duplicate names (Requirement 3.6)', () => {
 
   it('names the duplicate in the error message', () => {
     const server = newServer();
-    const definition = { name: 'sort_photos', description: 'd', inputSchema: z.object({}), handler: noop };
+    const definition = { name: 'my_tool', description: 'd', inputSchema: z.object({}), handler: noop };
     registerTool(server, definition);
-    expect(() => registerTool(server, definition)).toThrow(/sort_photos/);
+    expect(() => registerTool(server, definition)).toThrow(/my_tool/);
   });
 });
 

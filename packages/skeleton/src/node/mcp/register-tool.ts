@@ -6,7 +6,7 @@ import { errorResult } from './results.js';
 import type { ToolResult } from './results.js';
 
 export interface ToolDefinition<Schema extends StandardSchemaWithJSON> {
-  /** snake_case, for example "sort_photos". */
+  /** snake_case, for example "my_tool". */
   name: string;
   description: string;
   /**

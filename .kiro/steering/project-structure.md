@@ -16,7 +16,7 @@ inclusion: always
 
 ```
 packages/skeleton/        shared template (package name @skeleton-crew/core)
-apps/graveyard-shift/     CLI photo sorter
+apps/poltergeist-detector/  CLI before/after scene comparison
 apps/witches-pantry/      web UI, food detection and recipes
 samples/                  own photos only
 .kiro/                    specs, steering, hooks, agents, settings (always committed)
@@ -34,9 +34,9 @@ Tests sit next to the code as `*.test.ts` under `src/`.
 
 ## Naming
 
-- Files and folders: `kebab-case` (`sort-photos.ts`, `sort-photos.test.ts`).
+- Files and folders: `kebab-case` (`compare-scenes.ts`, `compare-scenes.test.ts`).
 - Types, interfaces, classes: `PascalCase`. Functions and variables: `camelCase`.
-- MCP tool names: `snake_case` (`detect_objects`, `sort_photos`).
+- MCP tool names: `snake_case` (`detect_objects`, `compare_scenes`).
 - ESM only (`"type": "module"`). Use `.js` extensions in relative imports if the tsconfig requires them.
 
 ## Behavior rules

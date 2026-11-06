@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Skeleton is a pnpm workspaces monorepo (Node 22 LTS) with one shared package (`packages/skeleton`) and two applications (`apps/graveyard-shift`, `apps/witches-pantry`). The Skeleton exposes a detector abstraction and an MCP server kit. Each Application wraps the Skeleton with its own CLI or web UI, its own MCP tools, and its own Kiro custom agent (App_Agent). Kiro is the only LLM in the system: it talks to each Application's MCP server as a client.
+The Skeleton is a pnpm workspaces monorepo (Node 22 LTS) with one shared package (`packages/skeleton`) and two applications (`apps/poltergeist-detector`, `apps/witches-pantry`). The Skeleton exposes a detector abstraction and an MCP server kit. Each Application wraps the Skeleton with its own CLI or web UI, its own MCP tools, and its own Kiro custom agent (App_Agent). Kiro is the only LLM in the system: it talks to each Application's MCP server as a client.
 
 ```
 playground/
@@ -20,7 +20,7 @@ playground/
 │   ├── agents/
 │   │   ├── tool-builder.md          # Dev_Agent
 │   │   ├── app-generator.md         # Dev_Agent
-│   │   ├── graveyard-shift.md   # App_Agent
+│   │   ├── poltergeist-detector.json   # App_Agent
 │   │   └── witches-pantry.md               # App_Agent
 │   ├── hooks/
 │   │   ├── test-on-save.json
@@ -43,7 +43,7 @@ playground/
 │           ├── mcp/                 # MCP server kit (Node-only)
 │           └── agent-template/      # App_Agent markdown template
 └── apps/
-    ├── graveyard-shift/   # CLI, Node
+    ├── poltergeist-detector/   # CLI, Node
     │   ├── package.json
     │   ├── README.md
     │   └── src/
@@ -59,7 +59,7 @@ playground/
 - **Node version.** The default Node on this machine was 18.20.4, below the v2 SDK's minimum. Node 22 is now installed and selected with `nvm use`. The repo pins it with `.nvmrc` and `engines.node`, so anyone cloning it gets a clear error on the wrong version instead of a confusing SDK failure.
 - **Package manager.** pnpm 10.34.9, pinned in the root `packageManager` field, with `workspace:*` links between the apps and the skeleton. pnpm 10 blocks dependency install scripts by default, so the root `package.json` lists the packages that need them (for example `esbuild` for Vite) under `pnpm.onlyBuiltDependencies`. Optional native packages such as `@tensorflow/tfjs-node` are deliberately not on that list, so a default install never needs build tools.
 - **TensorFlow.js in Node has two backends:** `@tensorflow/tfjs-node` (native C++ bindings, fast, requires node-gyp/build tools and can fail to install on some machines) and the pure-JS CPU backend bundled in `@tensorflow/tfjs` (slower, no native build step). Given the 4-week deadline and "someone else must be able to clone and run this," the design defaults to the pure-JS CPU backend for the CLI app, with `tfjs-node` as an optional, documented speed-up, not a requirement.
-- **COCO-SSD's 80 classes include very few foods**: banana, apple, orange, broccoli, carrot, sandwich, hot dog, pizza, donut, cake. It also returns a bounding box per detected object, which fits the photo sorter well.
+- **COCO-SSD's 80 classes include very few foods**: banana, apple, orange, broccoli, carrot, sandwich, hot dog, pizza, donut, cake. It also returns a bounding box per detected object, which is what the Poltergeist Detector needs to tell a moved object from a new one. COCO-SSD also covers common room objects (chair, couch, laptop, cup, bottle, book, clock, vase, potted plant, teddy bear, tv and more), which suits comparing photos of a desk or a room.
 - **Generic food/fruit/vegetable classifiers (MobileNet-based) return whole-image labels, not boxes.** This is why Requirement 2.6's model-adapter approach and Requirement 6.5's "classification vs. localized detection" distinction exist: the Detector's public shape must support both a bounding box (optional) and a confidence-scored label (always), and the web UI must render both cases.
 
 ## Architecture
@@ -67,7 +67,7 @@ playground/
 ### Layers
 
 1. **Detector (packages/skeleton/src/detector + detector-browser).** A `Detector` interface with one method, `detect(image, options) -> Detection[]`, implemented by swappable **model adapters**. Two adapters ship in the skeleton:
-   - `CocoSsdAdapter` — object detection with boxes, used by Graveyard Shift Inventory.
+   - `CocoSsdAdapter` — object detection with boxes, used by the Poltergeist Detector.
    - `MobileNetFoodAdapter` — whole-image food/ingredient classification, used by The Witch's Pantry, via `@tensorflow/tfjs` + `@tensorflow-models/mobilenet` (or an equivalent food-oriented classifier), filtered to a curated food-label allowlist maintained in the Witch's Pantry app.
    
    Both adapters are built on `@tensorflow/tfjs`, so they run unchanged in Node and in the browser; only image decoding differs per environment (browser canvas vs. a pure-JS decoder such as `jpeg-js`/`pngjs` in Node). This matters because the Pantry runs the food adapter in two places: in the browser for the UI, and in Node inside its MCP server so Kiro's `detect_objects` calls work on the same model. All callers use the same `Detector` interface (Requirement 2.6) regardless of adapter or environment.
@@ -79,31 +79,31 @@ playground/
 
 3. **Applications.** Each app folder contains:
    - Its interface code (CLI argument parsing, or the Vite web UI).
-   - Its app logic module (`sortPhotos.ts` / `suggestRecipes.ts`) — pure functions with no I/O side effects beyond what's passed in, so the CLI/UI and the MCP tool handler both call the exact same function (Requirements 5.10 / 6.14).
+   - Its app logic module (`compare-scenes.ts` / `suggest-recipes.ts`) — pure functions with no I/O side effects beyond what's passed in, so the CLI/UI and the MCP tool handler both call the exact same function (Requirements 5.10 / 6.14).
    - Its MCP server entry, which registers that app logic as a tool.
    - Its own `package.json`, README, and (for the CLI) a `bin` entry.
 
 4. **Kiro.** Connects to both MCP servers via `.kiro/settings/mcp.json`. Each Application has a matching App_Agent in `.kiro/agents/` scoped to only that app's tools plus the built-ins.
 
-### Data flow — Graveyard Shift Inventory (CLI)
+### Data flow — Poltergeist Detector (CLI)
 
 ```
-scan <folder> --json --move-to out/
+compare before.jpg after.jpg --json --min-confidence 0.4 --tolerance 0.5
         │
         ▼
- CLI (src/cli.ts) ──► reads image files in folder
+ CLI (src/cli.ts) ──► checks both paths, names the one that fails
         │
         ▼
- Detector.detect() (CocoSsdAdapter, pure-JS CPU backend)
+ Detector.detect() on each photo (CocoSsdAdapter, pure-JS CPU backend)
         │
         ▼
- sortPhotos(detectionsPerFile) ──► grouped-by-label result
+ compareScenes(before, after, { moveTolerance }) ──► appeared / vanished / moved / unchanged
         │
-        ├──► human-readable manifest / JSON (stdout)
-        └──► optional file copy into out/<label>/
+        ├──► human-readable haunting report / JSON (stdout)
+        └──► progress and warnings (stderr)
 ```
 
-The same `sortPhotos` function backs the `sort_photos` MCP tool, which calls `Detector.detect()` per file path it's given and returns the grouped result as structured content.
+The same `compareScenes` function backs the `compare_scenes` MCP tool, which calls `Detector.detect()` on the two paths it is given and returns the comparison as structured content. The two photos are detected one after the other, not in parallel, because the pure-JS backend runs on a single thread and a parallel run would not be faster.
 
 ### Data flow — The Witch's Pantry (web UI)
 
@@ -172,17 +172,35 @@ function registerTool<Input>(
 - Safety of file access: because a model chooses the arguments, `detect_objects` and `count_objects` only read files with supported image extensions that resolve inside an allowed root (default: the workspace folder), and cap base64 input size. A path outside the allowed root is rejected with a descriptive error.
 - Logging: stdout is the protocol channel for stdio servers, so server code logs only to stderr (`console.error`). A lint rule or hook should flag `console.log` under `src/mcp/` and each app's `mcp-server.ts`.
 
-### Graveyard Shift Inventory app logic
+### Poltergeist Detector app logic
 
 ```ts
-function sortPhotos(
-  entries: { filePath: string; detections: Detection[] }[]
-): { byLabel: Record<string, string[]>; unlabeled: string[] };
+interface SceneComparison {
+  appeared: Detection[];                                              // in "after" only
+  vanished: Detection[];                                              // in "before" only
+  moved: { label: string; before: Detection; after: Detection; distance: number }[];
+  unchanged: { label: string; before: Detection; after: Detection }[];
+}
+
+function compareScenes(
+  before: Detection[],
+  after: Detection[],
+  options?: { moveTolerance?: number }                                // default 0.5
+): SceneComparison;
 ```
 
-- CLI (`src/cli.ts`) built on a minimal argument parser (Node's built-in `util.parseArgs`, no extra dependency) implementing `scan`, `--json`, `--move-to`, `--min-confidence`, `--help`.
-- File moves use `fs.cp` (copy, not rename) per Requirement 5.5 ("without deleting the original files").
-- Per-file errors are caught around each file's detection call and collected into a report line, so one bad file doesn't stop the scan (Requirement 5.9).
+How `compareScenes` works (the numbers are first guesses, to be checked in Spike E):
+- Detections are only ever matched with Detections that have the same label. Within one label, the pairs with the smallest distance are matched first, until one side runs out. This is greedy matching, so it is not guaranteed to find the best overall pairing, but it is simple and deterministic.
+- The distance between two Detections is the distance between their box centres, divided by the larger of the two box diagonals. It is therefore a fraction of the object's own size and does not depend on the photo's resolution.
+- A matched pair whose distance is at or below `moveTolerance` is `unchanged`. A pair above it is `moved`. Detections left over from the "before" list are `vanished`, and from the "after" list are `appeared`.
+- A Detection with no bounding box can be matched but has no position, so a pair that includes one is always `unchanged`.
+- The number of pairs for a label is always the smaller of its "before" and "after" counts, so the number of appeared or vanished objects for a label is exactly the difference between the two counts. A moved object is never reported as both vanished and appeared.
+
+CLI and tool:
+- CLI (`src/cli.ts`) built on Node's built-in `util.parseArgs` (no extra dependency), implementing `compare <before> <after>`, `--json`, `--min-confidence`, `--tolerance`, `--help`.
+- The usage text says the two photos should be taken from the same spot with the camera in the same position, because a moved camera makes every object look moved.
+- If either path fails (missing, outside the allowed folder, not JPEG or PNG), the error names that photo and the CLI exits with code 1 (Requirement 5.8).
+- If neither photo has any detection, the report says nothing was detected (Requirement 5.9).
 
 ### The Witch's Pantry app logic
 
@@ -241,7 +259,7 @@ MCP: `suggest_recipes` returns each recipe's nutrition, `curseLevel`, and `purit
 ## Data models
 
 - **Detection** — see above.
-- **SortResult** — `{ byLabel: Record<label, filePath[]>, unlabeled: filePath[], errors: { filePath, message }[] }`.
+- **SceneComparison** — `{ appeared: Detection[], vanished: Detection[], moved: { label, before, after, distance }[], unchanged: { label, before, after }[] }`.
 - **Recipe** — `{ id, name, servings, ingredients: { name, grams }[], steps: string[], flavorText? }`.
 - **RecipeMatch** — `{ recipe, matched: string[], missing: string[], nutrition?, curseLevel?, purity? }`. The last three are filled in once Requirement 14 is built.
 
@@ -252,8 +270,8 @@ MCP: `suggest_recipes` returns each recipe's nutrition, `curseLevel`, and `purit
 | Detector | unsupported image format | rejects with `UnsupportedImageError`, caught at every call site, never crashes the process (Req 2.4) |
 | MCP tool handler | handler throws | caught by the kit wrapper, returned as `isError: true` tool result (Req 3.5) |
 | MCP tool handler | invalid input | rejected by Zod schema validation before the handler runs (Req 3.4) |
-| CLI | folder missing / empty | printed message, exit code 1 (Req 5.8) |
-| CLI | one file fails mid-scan | collected into `errors[]`, scan continues (Req 5.9) |
+| CLI | either photo missing, outside the allowed folder, or not JPEG/PNG | message naming that photo, exit code 1 (Req 5.8) |
+| CLI | nothing detected in either photo | message saying so instead of an empty report (Req 5.9) |
 | Web UI | unsupported file picked | inline error message, no crash (Req 6.11) |
 | Web UI | no recipe matches | "no recipes found" message instead of empty area (Req 6.12) |
 
@@ -261,8 +279,8 @@ MCP: `suggest_recipes` returns each recipe's nutrition, `curseLevel`, and `purit
 
 - **Unit tests** (Vitest) for CLI argument parsing, recipe dataset loading, and adapter error paths.
 - **Property-based tests** (`fast-check`), one file per property in Requirement 10:
-  - `sortPhotos`: every input file appears in exactly one output group.
-  - CLI `--move-to`: source folder file count is unchanged after a move-to run (uses a temp directory fixture, not the real filesystem).
+  - `compareScenes`: every Detection in the "before" list is reported exactly once (vanished, moved or unchanged), and every Detection in the "after" list exactly once (appeared, moved or unchanged).
+  - `compareScenes`: swapping "before" and "after" swaps the appeared and vanished counts for every label, and comparing a scene with itself reports nothing appeared, vanished or moved. The swap property is stated as counts per label, because the greedy matching may pair tied distances differently when the lists are swapped, although the number of unpaired objects per label never changes.
   - `suggestRecipes`: every returned recipe has ≥1 matched ingredient; matched ∪ missing equals the set of the recipe's ingredient names, with empty intersection; adding an ingredient never decreases a recipe's matched count.
   - MCP kit: registering a duplicate tool name always throws; invalid input always rejects before the handler runs.
   - `curseLevel`: always within 0 to 100; monotonic in sodium, saturated fat, and added sugar (non-decreasing) and in fibre and protein (non-increasing).
@@ -273,7 +291,7 @@ MCP: `suggest_recipes` returns each recipe's nutrition, `curseLevel`, and `purit
 
 ## Deployment
 
-- **Graveyard Shift Inventory**: published as a local CLI; README documents `pnpm install` then `pnpm --filter graveyard-shift start scan <folder>` from the repo root (with an optional `pnpm link --global` to get a bare `graveyard-shift scan <folder>` command). No hosting needed (Requirement 13.3).
+- **Poltergeist Detector**: published as a local CLI; README documents `pnpm install` then `pnpm --filter poltergeist-detector start compare <before> <after>` from the repo root (with an optional `pnpm link --global` to get a bare `poltergeist-detector compare <before> <after>` command). No hosting needed (Requirement 13.3).
 - **The Witch's Pantry**: `pnpm --filter witches-pantry build` (Vite) produces static files in `dist/`, deployed via GitHub Pages (a `gh-pages` branch or GitHub Actions workflow), giving judges a working URL per Requirement 6.4 / 13.2.
 
 ## Spike B result: detection speed in Node (decided)
@@ -285,7 +303,7 @@ Ran COCO-SSD on the pure-JS CPU backend (`@tensorflow/tfjs` 4.22.0) via `jpeg-js
 - Model cold-load time: ~5.6 s (one-time; the adapter caches it).
 - Per-image inference: **4.8–6.4 s**, average **5.2 s**. The outlier (6.4 s) was the first post-load call; subsequent images converged to ~4.8 s. Inference time is almost flat across image sizes — the bottleneck is pure-JS computation, not pixel upload.
 - Memory: ~54 MB heap, ~234 MB RSS after 4 images.
-- Detection quality on real food photos was usable: `bowl`, `broccoli`, `carrot`, `orange`, `banana`, `dining table` were all detected. COCO-SSD's 80 classes include enough food-adjacent labels for the photo sorter use case.
+- Detection quality on real food photos was usable: `bowl`, `broccoli`, `carrot`, `orange`, `banana`, `dining table` were all detected. COCO-SSD's 80 classes include enough labels for the scene comparison use case.
 - `tf.browser.fromPixels` in Node requires `{ data: Buffer | Uint8Array, width, height }`. The `data` value must satisfy `instanceof Uint8Array`. Do **not** re-wrap via `new Uint8Array(buf.buffer, offset, len)` — that creates a view whose prototype chain breaks the check. Both `jpeg-js` (with `useTArray: false`, default) and `PNG.sync.read` from `pngjs` return a `Buffer`, which satisfies `instanceof Uint8Array` directly.
 
 **Decision:** ~5 s per image is slow for interactive use but acceptable for a batch CLI (user kicks it off and waits). Document `@tensorflow/tfjs-node` as an **optional speed-up** rather than a requirement so `pnpm install` never needs build tools. The CLI will print a one-time hint suggesting `tfjs-node`. Resizing inputs is skipped — timings are flat across sizes so it would not help.

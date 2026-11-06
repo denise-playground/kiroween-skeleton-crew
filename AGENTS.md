@@ -23,7 +23,7 @@ One public GitHub repository, organized as a pnpm workspaces monorepo (Node 22 L
 packages/
   skeleton/          # shared template: detection core + MCP server kit
 apps/
-  graveyard-shift/             # Application 1: CLI photo sorter (scan a folder, sort/tag by detected objects)
+  poltergeist-detector/        # Application 1: CLI that compares a before and an after photo and reports what appeared, vanished or moved
   witches-pantry/               # Application 2: web UI, food detection + recipe suggestions (themed as potions)
 .kiro/               # specs, hooks, steering, agents, MCP settings (must be committed)
 samples/             # sample images (no copyrighted material)

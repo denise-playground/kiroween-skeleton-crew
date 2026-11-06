@@ -2,7 +2,7 @@
 
 ## Overview
 
-This plan builds the Skeleton Crew submission in eight phases: workspace setup, early spikes to test risky assumptions, the shared skeleton package, the Graveyard Shift CLI, the Witch's Pantry web app, the optional nutrition feature (Curse Level and Potion Purity), the Kiro layer (custom agents, hooks, steering), and the submission package. Each task points to the requirements it covers in `requirements.md` and follows the architecture in `design.md`.
+This plan builds the Skeleton Crew submission in eight phases: workspace setup, early spikes to test risky assumptions, the shared skeleton package, the Poltergeist Detector CLI, the Witch's Pantry web app, the optional nutrition feature (Curse Level and Potion Purity), the Kiro layer (custom agents, hooks, steering), and the submission package. Each task points to the requirements it covers in `requirements.md` and follows the architecture in `design.md`.
 
 Deadline: **4 December 2026**. Target submission date: **Wednesday 2 December**, leaving two days of buffer. Tasks marked `*` are stretch; see Notes for the cut order and the definition of done.
 
@@ -26,7 +26,7 @@ Deadline: **4 December 2026**. Target submission date: **Wednesday 2 December**,
     - _Requirements: 12.1_
   - [x] 1.3 Convert the root `tsconfig.json` into `tsconfig.base.json` (keep the strict options) and add per-package `tsconfig.json` files that extend it, with `types: ["node"]` only where needed
     - _Requirements: 1.1_
-  - [x] 1.4 Create empty package shells: `packages/skeleton`, `apps/graveyard-shift`, `apps/witches-pantry`, each with its own `package.json` (`"type": "module"`, apps depend on `@skeleton-crew/core` through `workspace:*`)
+  - [x] 1.4 Create empty package shells: `packages/skeleton`, `apps/poltergeist-detector`, `apps/witches-pantry`, each with its own `package.json` (`"type": "module"`, apps depend on `@skeleton-crew/core` through `workspace:*`)
     - _Requirements: 1.1, 1.5_
   - [x] 1.5 Create `.gitignore` with `node_modules/`, `dist/`, and `.env*`. Do not ignore `.kiro/` or anything inside it
     - _Requirements: 12.3_
@@ -70,7 +70,7 @@ Each spike ends with a written decision in `design.md` and a line in `KIRO_USAGE
 - [x] 7. Collect sample images
   - 12 to 20 photos taken by you (food, a desk, pets or toys, a street scene). No stock photos with unclear licenses, no logos or brands
   - Store in `samples/` with a short `samples/README.md` stating they are your own work
-  - Done with a reduced set: 4 original photos (all food or kitchen) plus rotated copies, 15 files in total, with brands and logos pixelated. Replace or add real photos of a desk, pets or toys, and a street scene when available
+  - Done with a reduced set: 4 original photos (all food or kitchen) plus rotated copies, 15 files in total, with brands and logos pixelated. Still missing: the before and after photo pair for the Poltergeist Detector, which Spike E (task 14a) collects
   - _Requirements: 4.4, 12.6_
 
 - [x] 8. Checkpoint: spikes complete. Update `design.md`, `KIRO_USAGE.md`
@@ -122,37 +122,44 @@ Each spike ends with a written decision in `design.md` and a line in `KIRO_USAGE
 
 - [x] 14. Checkpoint: run the built-in tools through the MCP Inspector on a sample image, then update `KIRO_USAGE.md`
 
-### Phase 4: Graveyard Shift CLI (week 2)
+### Phase 4: Poltergeist Detector CLI (week 2)
+
+- [ ] 14a. Spike E: scene comparison on real photos (blocks task 15)
+  - Take two photos of the same desk or shelf from the same spot (a phone propped on a book works), then move two or three objects between them and remove one. Save them as your own photos in `samples/` (for example `desk-before.jpg` and `desk-after.jpg`), with no brand names, logos, people, or screens showing anything personal
+  - Run COCO-SSD on both and list what it detects. Check three things: does it find the same objects in both photos when nothing changed, how far do box centres drift between two photos of an unchanged scene, and does a moved object keep its label
+  - Take a third photo of the unchanged desk from the same spot and compare it with the first. The result should report nothing, and anything it does report is a false change that the thresholds must absorb
+  - Decision: set the default `moveTolerance` and confidence threshold from the measured drift, and record in `design.md` whether the idea works. If the false changes are too many to fix with thresholds, the fallback is to compare counts per label only (appeared and vanished, no "moved")
+  - _Requirements: 5.1, 5.3, 5.6_
 
 - [ ] 15. App logic
-  - [ ] 15.1 `sortPhotos` pure function, with a group for photos where nothing was detected
+  - [ ] 15.1 `compareScenes` pure function as described in `design.md`: match Detections per label by normalized box-centre distance, then report appeared, vanished, moved and unchanged
     - _Requirements: 5.1, 5.10_
-  - [ ] 15.2 Property test: every scanned image appears in exactly one group
+  - [ ] 15.2 Property test: every Detection in the "before" list is reported exactly once (vanished, moved, unchanged) and every Detection in the "after" list exactly once (appeared, moved, unchanged)
     - _Requirements: 10.5_
-  - [ ] 15.3 Folder scanner: top-level files only, supported extensions only, per-file errors collected without stopping the run
-    - _Requirements: 5.3, 5.9_
-  - [ ] 15.4 Manifest formatter: human-readable and JSON output
-    - _Requirements: 5.3, 5.4_
-  - [ ] 15.5 `--move-to` copy logic: never deletes originals, avoids filename collisions
-    - _Requirements: 5.5_
-  - [ ] 15.6 Property test (temporary directory): the number of files in the source folder is unchanged after a copy run
+  - [ ] 15.3 Property tests: swapping "before" and "after" swaps the appeared and vanished counts per label, and comparing a scene with itself reports nothing appeared, vanished or moved
     - _Requirements: 10.6_
+  - [ ] 15.4 Example tests for the tolerance edges: an object just inside and just outside `moveTolerance`, Detections without a bounding box, two objects of one label swapping places, and empty lists
+    - _Requirements: 5.6, 5.9_
+  - [ ] 15.5 Report formatter: human-readable "haunting report" and JSON output, with a clear message when nothing was detected in either photo
+    - _Requirements: 5.3, 5.4, 5.9_
+  - [ ] 15.6 Scene loader: run the Detector on both photos one after the other, and name the photo that failed if one cannot be read
+    - _Requirements: 5.8_
 
 - [ ] 16. CLI and MCP server
-  - [ ] 16.1 CLI with `util.parseArgs`: `scan <folder>`, `--json`, `--move-to`, `--min-confidence`, `--help`. Results go to stdout and progress to stderr. Exit code 1 for a missing or empty folder
+  - [ ] 16.1 CLI with `util.parseArgs`: `compare <before> <after>`, `--json`, `--min-confidence`, `--tolerance`, `--help`. Results go to stdout and progress to stderr. Exit code 1 when a photo is missing or unsupported. The usage text says to take both photos from the same spot
     - _Requirements: 5.3, 5.4, 5.5, 5.6, 5.7, 5.8_
-  - [ ] 16.2 `bin` entry so `graveyard-shift scan <folder>` works after `pnpm link --global`
+  - [ ] 16.2 `bin` entry so `poltergeist-detector compare <before> <after>` works after `pnpm link --global`
     - _Requirements: 5.3_
-  - [ ] 16.3 MCP server entry registering `sort_photos` on top of the built-ins, using the same `sortPhotos` logic as the CLI
+  - [ ] 16.3 MCP server entry registering `compare_scenes` on top of the built-ins, using the same `compareScenes` logic as the CLI
     - _Requirements: 5.1, 5.10_
   - [ ] 16.4 Unit tests for argument parsing, exit codes, and the error paths
     - _Requirements: 5.7, 5.8, 5.9_
 
 - [ ] 17. Kiro wiring for the CLI app
-  - Add the server to `.kiro/settings/mcp.json`, write the App_Agent (haunted-inventory-crew persona, only this app's tools), try it in Kiro on the samples, and keep a screenshot
+  - Add the server to `.kiro/settings/mcp.json`, write the App_Agent (poltergeist-investigator persona, only this app's tools), try it in Kiro on the before and after photos, and keep a screenshot
   - _Requirements: 4.1, 4.2, 4.3, 5.2_
 
-- [ ] 18. Checkpoint: run the CLI on `samples/` end to end, then update `KIRO_USAGE.md`
+- [ ] 18. Checkpoint: run the CLI on the before and after photos in `samples/` end to end, then update `KIRO_USAGE.md`
 
 ### Phase 5: The Witch's Pantry core (weeks 2 to 3)
 
@@ -257,11 +264,11 @@ Each spike ends with a written decision in `design.md` and a line in `KIRO_USAGE
   - _Requirements: 12.1, 12.2, 12.3, 12.6_
 
 - [ ] 34. Clean-clone test
-  - Clone into a fresh folder, run `nvm use`, `pnpm install`, `pnpm test`, `pnpm build`, run the CLI on `samples/`, and open the deployed URL. Fix everything that breaks
+  - Clone into a fresh folder, run `nvm use`, `pnpm install`, `pnpm test`, `pnpm build`, run the CLI on the before and after photos in `samples/`, and open the deployed URL. Fix everything that breaks
   - _Requirements: 1.3, 1.7, 12.4_
 
 - [ ] 35. Demo video (3 minutes or less, YouTube public)
-  - Outline: problem and audience (15s), Witch's Pantry end to end (60s), Graveyard Shift CLI plus Kiro calling the MCP tools (45s), `app-generator` making a third app (30s), the Kiro features used (20s)
+  - Outline: problem and audience (15s), Witch's Pantry end to end (60s), Poltergeist Detector CLI plus Kiro calling the MCP tools (45s), `app-generator` making a third app (30s), the Kiro features used (20s)
   - Original or royalty-free audio only, no third-party logos, recorded on the machine the project was built on
   - _Requirements: 13.5, 13.10_
 
@@ -297,7 +304,8 @@ flowchart TD
     T3 --> T12
     T12 --> T13[13. Entry points and app template]
 
-    T13 --> T15[15. Graveyard Shift logic]
+    T13 --> T14a[14a. Spike E: scene comparison]
+    T14a --> T15[15. Poltergeist Detector logic]
     T15 --> T16[16. CLI and MCP server]
     T16 --> T17[17. Kiro wiring: CLI app]
     T3 --> T17
@@ -356,7 +364,7 @@ Each phase ends with a checkpoint. Add a short, concrete entry to `KIRO_USAGE.md
 | Week | Dates | Focus |
 |---|---|---|
 | 1 | 2 to 8 Nov | Setup, spikes, skeleton |
-| 2 | 9 to 15 Nov | Graveyard Shift CLI, start Witch's Pantry core |
+| 2 | 9 to 15 Nov | Poltergeist Detector CLI, start Witch's Pantry core |
 | 3 | 16 to 22 Nov | Witch's Pantry core and deploy, stretch nutrition |
 | 4 | 23 to 29 Nov | Kiro layer polish, READMEs, video, blog, social |
 | Buffer | 30 Nov to 3 Dec | Clean-clone test, fixes, submit by 2 Dec |

@@ -23,7 +23,7 @@ Each application supplies only configuration, app-specific tools, and a Kiro cus
 - Interfaces: Application 1 is a **CLI** and Application 2 is a **web UI**. Using two different interfaces on the same Skeleton shows its flexibility.
 - Both Applications also work through Kiro: each has an MCP_Server and an App_Agent. Because Kiro is the agent layer, AI reasoning happens inside Kiro. The CLI and web UI use the Detection Core and app-specific logic directly, without AI reasoning.
 
-- Application 1 ("Graveyard Shift Inventory"): a CLI photo sorter. It scans a folder of images, detects objects in each, and sorts/tags the photos by what was found, themed as a haunted-house overnight inventory crew.
+- Application 1 ("Poltergeist Detector"): a CLI that compares two photos of the same place, taken before and after something may have changed. It detects objects in both and reports what appeared, what vanished, and what moved, themed as a haunting report ("the poltergeist took your cup"). It uses the bounding boxes that COCO-SSD returns.
 - Application 2 ("The Witch's Pantry"): a web UI food app. The user photographs or uploads a food/fridge photo, the app detects food items (editable by the user), and suggests recipes from a local dataset, themed as potions from a witch's pantry.
 
 ## Glossary
@@ -31,7 +31,7 @@ Each application supplies only configuration, app-specific tools, and a Kiro cus
 - **Skeleton**: the shared template package(s) that all applications depend on.
 - **Application (App)**: a project under `apps/` that is built from the Skeleton.
 - **Detector**: the Skeleton component that runs object detection on an image.
-- **Detection**: a single detected object with a label, confidence score, and bounding box.
+- **Detection**: a single detected object with a label, confidence score, and, when the model localizes it, a bounding box.
 - **MCP_Server**: an MCP server built with the Skeleton's MCP Server Kit that hosts Tools for one Application.
 - **Tool**: a named, schema-validated function exposed by the MCP_Server.
 - **Kiro_Custom_Agent**: a Kiro agent configuration in `.kiro/agents/` that runs inside Kiro.
@@ -99,22 +99,22 @@ Each application supplies only configuration, app-specific tools, and a Kiro cus
 4. THE project SHALL include sample images in a `samples/` folder that App_Agents can pass to `detect_objects`.
 5. THE Skeleton SHALL include an App_Agent template that new Applications copy and customize.
 
-### Requirement 5: Application 1 – Graveyard Shift Inventory (CLI photo sorter)
+### Requirement 5: Application 1 – Poltergeist Detector (CLI before/after scene comparison)
 
-**User Story:** As a user with a folder of unsorted photos, I want to scan them and have them tagged or sorted by what's in them, so that I can find and organize photos without looking at each one by hand.
+**User Story:** As someone who shares a space or wants to check a room after a change, I want to compare two photos of the same place and see what appeared, vanished or moved, so that I can tell what changed without studying both photos by eye.
 
 #### Acceptance Criteria
 
-1. THE Application SHALL register at least one app-specific Tool using the MCP Server Kit: `sort_photos`, which scans a folder of images and groups filenames by detected label.
-2. THE Application SHALL include an App_Agent that uses the built-in Tools and `sort_photos`, with a haunted-inventory-crew persona (for example, reporting results as a "shift manifest").
-3. WHEN the user runs the CLI with a folder path (`scan <folder>`), THE CLI SHALL detect objects in every supported image in that folder and print a human-readable manifest: one line per label with the count and matching filenames.
-4. WHERE the `--json` flag is given, THE CLI SHALL print the same results as JSON instead of the human-readable manifest.
-5. WHERE the `--move-to <folder>` flag is given, THE CLI SHALL copy each scanned image into a sub-folder named after its top detected label, without deleting the original files.
-6. WHERE the `--min-confidence <value>` flag is given, THE CLI SHALL pass that value to the Detector as the minimum confidence threshold.
-7. WHEN the user runs the CLI with `--help` or with no arguments, THE CLI SHALL print usage instructions.
-8. IF the folder path does not exist or contains no supported images, THEN THE CLI SHALL print a descriptive message and exit with a non-zero exit code.
-9. IF an individual image in the folder fails to process, THEN THE CLI SHALL report that file's error inline and continue processing the remaining images.
-10. THE CLI and the `sort_photos` Tool SHALL share the same app logic, so results are the same in the terminal and in Kiro.
+1. THE Application SHALL register at least one app-specific Tool using the MCP Server Kit: `compare_scenes`, which takes the paths of a "before" image and an "after" image and returns the objects that appeared, vanished, moved, and stayed in place.
+2. THE Application SHALL include an App_Agent that uses the built-in Tools and `compare_scenes`, with a poltergeist-investigator persona (for example, reporting results as a "haunting report").
+3. WHEN the user runs the CLI with `compare <before> <after>`, THE CLI SHALL detect objects in both images and print a human-readable report with one section each for appeared, vanished, and moved objects, and the count of objects that stayed in place.
+4. WHERE the `--json` flag is given, THE CLI SHALL print the same results as JSON instead of the human-readable report.
+5. WHERE the `--min-confidence <value>` flag is given, THE CLI SHALL pass that value to the Detector as the minimum confidence threshold.
+6. WHERE the `--tolerance <fraction>` flag is given, THE CLI SHALL use it as how far an object must move, as a fraction of its own size, before it is reported as moved.
+7. WHEN the user runs the CLI with `--help` or with no arguments, THE CLI SHALL print usage instructions that say the two photos should be taken from the same spot.
+8. IF either image path does not exist, is outside the allowed folder, or is not a supported image, THEN THE CLI SHALL print a message that names that image and exit with a non-zero exit code.
+9. IF neither image contains any detection, THEN THE CLI SHALL say that nothing was detected, instead of printing an empty report.
+10. THE CLI and the `compare_scenes` Tool SHALL share the same app logic, so results are the same in the terminal and in Kiro.
 
 ### Requirement 6: Application 2 – The Witch's Pantry (web UI food + recipes)
 
@@ -179,8 +179,8 @@ Each application supplies only configuration, app-specific tools, and a Kiro cus
 2. THE project SHALL include a Property_Test verifying that every Detection returned with a confidence threshold has a confidence greater than or equal to that threshold.
 3. THE project SHALL include a Property_Test verifying that registering any Tool name twice is always rejected.
 4. THE project SHALL include a Property_Test verifying that for any input that fails a Tool's schema, the MCP_Server returns a validation error and does not call the handler.
-5. THE Graveyard Shift Inventory SHALL include a Property_Test verifying that, for any set of per-image Detections, every scanned image appears in exactly one group in the `sort_photos` output.
-6. THE Graveyard Shift Inventory SHALL include a Property_Test verifying that `--move-to` never changes the number of original files in the source folder.
+5. THE Poltergeist Detector SHALL include a Property_Test verifying that, for any two lists of Detections, every Detection in the "before" list is reported exactly once as vanished, moved, or unchanged, and every Detection in the "after" list is reported exactly once as appeared, moved, or unchanged.
+6. THE Poltergeist Detector SHALL include a Property_Test verifying that swapping the "before" and "after" lists swaps the number of appeared and vanished objects for every label, and that comparing a scene with itself reports nothing appeared, vanished or moved.
 7. THE Witch's Pantry SHALL include a Property_Test verifying that every recipe returned by `suggest_recipes` matches at least one of the given ingredients.
 8. THE Witch's Pantry SHALL include a Property_Test verifying that adding an ingredient to the list never decreases the number of matched ingredients for any recipe.
 9. THE Witch's Pantry SHALL include a Property_Test verifying that, for any recipe and ingredient list, the matched and missing ingredient lists together equal the recipe's full ingredient list, with no overlap.

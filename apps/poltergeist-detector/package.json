@@ -1,7 +1,7 @@
 {
-  "name": "graveyard-shift",
+  "name": "poltergeist-detector",
   "version": "0.1.0",
-  "description": "Graveyard Shift Inventory: a CLI that scans a folder of photos and sorts them by what is in them.",
+  "description": "Poltergeist Detector: a CLI that compares two photos of the same place and reports what appeared, vanished or moved.",
   "private": true,
   "type": "module",
   "license": "MIT",
